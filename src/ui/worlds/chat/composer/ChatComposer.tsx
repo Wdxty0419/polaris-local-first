@@ -93,10 +93,16 @@ if (!fingertipsRef.current) {
   };
 
   const updateLocalDraft = (value: string) => {
-    localDraftRef.current = value;
-    // Live keystrokes stay local; draft persistence flushes at interaction boundaries.
-    setLocalDraft(value);
-  };
+ if (value.length > 0) {
+ fingertipsRef.current?.recordInput();
+ } else {
+ fingertipsRef.current?.clearInput();
+ }
+
+ localDraftRef.current = value;
+ // Live keystrokes stay local; draft persistence flushes at interaction boundaries.
+ setLocalDraft(value);
+};
 
   useEffect(() => () => {
     flushDraftToStore();
