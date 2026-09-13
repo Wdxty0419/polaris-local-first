@@ -15,18 +15,9 @@ jobs:
  - uses: android-actions/setup-android@v3
  - run: npm install
  - run: npm install @capacitor/background-runner
- - name: Patch capacitor config
- run: sed -i "s|presentationOptions: \['badge', 'sound', 'banner', 'list'\] }|presentationOptions: ['badge', 'sound', 'banner', 'list'] }, BackgroundRunner: { label: 'com.polaris.wakeprobe', src: 'runners/wake-probe.js', event: 'wakeProbe', repeat: true, interval: 15, autoStart: true }|" capacitor.config.ts
- - name: Patch gradle
- run: sed -i "s|'libs' }|'libs', '../../node_modules/@capacitor/background-runner/android/src/main/libs' }|" android/app/build.gradle
- - name: Show config
- run: cat capacitor.config.ts
  - run: npm run build
  - run: npx cap sync android
- - name: Build APK
- run: cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon
- - name: Verify
- run: unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -i wake-probe || echo "WARNING: runner not found"
+ - run: cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon
  - uses: actions/upload-artifact@v4
  with:
  name: polaris-probe-debug
