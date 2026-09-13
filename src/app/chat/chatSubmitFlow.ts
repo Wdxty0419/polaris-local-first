@@ -13,6 +13,7 @@ type SubmitMessageState = {
   inputDraft: string;
   pendingAttachments: ChatAttachment[];
   pendingCardReference: ChatCardReference | null;
+  fingertips?: string;
   sending: boolean;
   hasUnsupportedPendingImages: boolean;
   conversations: {
@@ -157,14 +158,18 @@ export async function submitMessage(state: SubmitMessageState, handlers: SubmitM
   if (conversationForSelectedCollaborator?.collaboratorId === null) {
     handlers.setCommandStatus('原协作者已删除，已为当前协作者新开对话继续聊天。');
   }
-  const userMessage = createMessage(
-    'user',
-    raw,
-    state.pendingAttachments.length ? state.pendingAttachments : undefined,
-    'user-input',
-    undefined,
-    state.pendingCardReference
-  );
+  const contentWithFingertips = state.fingertips
+ ? `${raw}\n\n${state.fingertips}`
+ : raw;
+
+const userMessage = createMessage(
+ 'user',
+ contentWithFingertips,
+ state.pendingAttachments.length ? state.pendingAttachments : undefined,
+ 'user-input',
+ undefined,
+ state.pendingCardReference
+);
   const nextMessages = [...writableSession.messages, userMessage];
 
   handlers.addMessage(writableSession, userMessage);
