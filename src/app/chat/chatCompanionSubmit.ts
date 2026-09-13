@@ -8,6 +8,7 @@ type SubmitCompanionMessageState = {
   inputDraft: string;
   pendingAttachments: ChatAttachment[];
   pendingCardReference: ChatCardReference | null;
+  fingertips?: string;
   activeConversation: {
     id: string;
     collaboratorId: string | null;
@@ -45,7 +46,16 @@ export async function submitCompanionMessage(
     return;
   }
 
-  const optimisticMessage = createMessage('user', raw, undefined, 'user-input');
+  const contentWithFingertips = state.fingertips
+ ? `${raw}\n\n${state.fingertips}`
+ : raw;
+
+const optimisticMessage = createMessage(
+ 'user',
+ contentWithFingertips,
+ undefined,
+ 'user-input'
+);
   let writableSession: WritableConversationBody | null = null;
   try {
     writableSession = await handlers.ensureConversationWritable(state.activeConversation.id);
@@ -83,7 +93,7 @@ export async function submitCompanionMessage(
     hostId: connection.hostId,
     clientId: connection.clientId,
     clientSecret: connection.clientSecret,
-    text: raw
+    text: contentWithFingertips
   });
   handlers.setCommandStatus('已经送到电脑端了。');
 }
