@@ -65,7 +65,9 @@ export type ChatContextAttachmentsValue = {
 };
 
 export type ChatContextActionsValue = {
-  submit: () => Promise<void>;
+  submit: (options?: {
+ fingertips?: string;
+}) => Promise<void>;
   stopGeneration: () => void;
   retry: (message: ChatMessage) => Promise<void>;
   editMessage: (message: ChatMessage) => void;
