@@ -194,8 +194,7 @@ if (!fingertipsRef.current) {
       return;
     }
     event.preventDefault();
-    flushDraftToStore();
-    void actions.submit();
+    submitWithFingertips();
   };
   const handleSubmitPress = () => {
     if (ui.sending) {
@@ -203,8 +202,7 @@ if (!fingertipsRef.current) {
       return;
     }
     if (tryCastThemeReviveSpell()) return;
-    flushDraftToStore();
-    void actions.submit();
+    submitWithFingertips();
   };
   const handleComposerInputEngage = () => {
     if (!attachmentPickerOpen) return;
