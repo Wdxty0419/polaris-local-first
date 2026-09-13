@@ -34,6 +34,12 @@ jobs:
               CapacitorKV.set('wake_probe_log', JSON.stringify(log));
               CapacitorKV.set('wake_probe_last', String(now));
               console.log('[wake-probe] tick #' + log.length + ' at ' + new Date(now).toISOString());
+              CapacitorNotifications.schedule([{
+                id: 9001,
+                title: 'Wake Probe',
+                body: '后台探针已执行：' + new Date(now).toISOString(),
+                channelId: 'polaris-wake-probe'
+              }]);
               resolve();
             } catch (err) { reject(err); }
           });
