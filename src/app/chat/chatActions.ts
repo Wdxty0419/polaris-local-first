@@ -58,12 +58,15 @@ export function createChatActionHandlers({
     };
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (options?: {
+ fingertips?: string;
+}) => {
     if (!startupReady) {
       return;
     }
 
     const latestSubmitState = readLatestSubmitState();
+    const fingertips = options?.fingertips;
     const latestActiveConversation = latestSubmitState.activeConversationId
       ? latestSubmitState.conversations.find((conversation) => conversation.id === latestSubmitState.activeConversationId) ?? null
       : null;
@@ -94,6 +97,7 @@ export function createChatActionHandlers({
           inputDraft: latestSubmitState.inputDraft,
           pendingAttachments: latestSubmitState.pendingAttachments,
           pendingCardReference: latestSubmitState.pendingCardReference,
+          fingertips,
           activeConversation: latestActiveConversation
         }, {
           ensureConversationWritable: store.chat.ensureConversationWritable,
@@ -111,6 +115,7 @@ export function createChatActionHandlers({
         inputDraft: latestSubmitState.inputDraft,
         pendingAttachments: latestSubmitState.pendingAttachments,
         pendingCardReference: latestSubmitState.pendingCardReference,
+        fingertips,
         sending: ui.sending,
         hasUnsupportedPendingImages: derived.hasUnsupportedPendingImages,
         conversations: latestSubmitState.conversations,
