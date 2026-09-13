@@ -2,6 +2,7 @@ import { ImpactStyle } from '@capacitor/haptics';
 import type { ClipboardEvent, KeyboardEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { resolveChatCardReference } from '../../../../app/collection/codeCollectionSource';
+import createFingertips from '../../../chat/fingertips';
 import { Icon } from '../../../Icon';
 import { runImpactAction } from '../../../haptics';
 import {
