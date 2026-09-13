@@ -1,0 +1,105 @@
+name: Build Probe APK
+
+on: workflow_dispatch
+
+jobs:
+ build:
+ runs-on: ubuntu-latest
+ steps:
+ - uses: actions/checkout@v4
+
+ - uses: actions/setup-node@v4
+ with:
+ node-version: '22'
+
+ - uses: actions/setup-java@v4
+ with:
+ distribution: temurin
+ java-version: '17'
+
+ - uses: android-actions/setup-android@v3
+
+ - name: Write probe runner
+ run: |
+ mkdir -p public/runners
+ cat > public/runners/wake-probe.js << 'EOF'
+ addEventListener('wakeProbe', (resolve, reject, args) => {
+ try {
+ const now = Date.now();
+ let log = [];
+ try {
+ const raw = CapacitorKV.get('wake_probe_log').value;
+ if (raw) log = JSON.parse(raw);
+ } catch (e) { log = []; }
+ log.push(now);
+ if (log.length > 500) log = log.slice(-500);
+ CapacitorKV.set('wake_probe_log', JSON.stringify(log));
+ CapacitorKV.set('wake_probe_last', String(now));
+ console.log('[wake-probe] tick #' + log.length + ' at ' + new Date(now).toISOString());
+ resolve();
+ } catch (err) { reject(err); }
+ });
+ EOF
+ echo '--- runner written ---'
+ cat public/runners/wake-probe.js
+
+ - name: Patch capacitor config
+ run: |
+ cat > /tmp/p1.js << 'EOF'
+ const fs = require('fs');
+ let s = fs.readFileSync('capacitor.config.ts', 'utf8');
+ if (s.includes('BackgroundRunner')) { console.log('already patched'); process.exit(0); }
+ const a = "LocalNotifications: { presentationOptions: ['badge', 'sound', 'banner', 'list'] }";
+ if (!s.includes(a)) { console.error('ANCHOR MISSING'); process.exit(1); }
+ s = s.replace(a, a + ",\n BackgroundRunner: { label: 'com.polaris.wakeprobe', src: 'runners/wake-probe.js', event: 'wakeProbe', repeat: true, interval: 15, autoStart: true }");
+ fs.writeFileSync('capacitor.config.ts', s);
+ console.log('config patched');
+ EOF
+ node /tmp/p1.js
+ echo '--- result ---'
+ cat capacitor.config.ts
+
+ - name: Install dependencies
+ run: npm install
+
+ - name: Install background runner plugin
+ run: npm install @capacitor/background-runner
+
+ - name: Patch android build.gradle
+ run: |
+ cat > /tmp/p2.js << 'EOF'
+ const fs = require('fs');
+ let s = fs.readFileSync('android/app/build.gradle', 'utf8');
+ if (s.includes('background-runner')) { console.log('already patched'); process.exit(0); }
+ const a = "'libs' }";
+ if (!s.includes(a)) { console.error('ANCHOR MISSING'); process.exit(1); }
+ s = s.replace(a, "'libs', '../../node_modules/@capacitor/background-runner/android/src/main/libs' }");
+ fs.writeFileSync('android/app/build.gradle', s);
+ console.log('gradle patched');
+ EOF
+ node /tmp/p2.js
+
+ - name: Build web assets
+ run: npm run build
+
+ - name: Capacitor sync
+ run: npx cap sync android
+
+ - name: Build debug APK
+ run: |
+ cd android
+ chmod +x gradlew
+ ./gradlew assembleDebug --no-daemon
+
+ - name: Verify runner landed in APK
+ run: |
+ APK=android/app/build/outputs/apk/debug/app-debug.apk
+ ls -lh "$APK"
+ echo '--- checking runner inside APK ---'
+ unzip -l "$APK" | grep -i "wake-probe" || echo 'WARNING: runner NOT found in APK'
+
+ - uses: actions/upload-artifact@v4
+ with:
+ name: polaris-probe-debug
+ path: android/app/build/outputs/apk/debug/app-debug.apk
+ retention-days: 14
