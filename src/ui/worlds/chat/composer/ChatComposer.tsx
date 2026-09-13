@@ -177,6 +177,12 @@ if (!fingertipsRef.current) {
     event.preventDefault();
     await handleAddAttachments(files);
   };
+  const submitWithFingertips = () => {
+ const fingertips = fingertipsRef.current?.consumeAttachment('汤圆') || undefined;
+
+ flushDraftToStore();
+ void actions.submit({ fingertips });
+};
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key !== 'Enter' || event.shiftKey || interactionLocked || hasUnsupportedPendingImages) return;
     const prefersTouchInput =
