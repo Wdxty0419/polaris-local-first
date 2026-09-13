@@ -51,7 +51,12 @@ export function ChatComposer() {
   const actions = useChatActions();
   const [attachmentPickerOpen, setAttachmentPickerOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const activeConversationId = presentation.activeConversationId;
+const activeConversationId = presentation.activeConversationId;
+const fingertipsRef = useRef<ReturnType<typeof createFingertips> | null>(null);
+
+if (!fingertipsRef.current) {
+ fingertipsRef.current = createFingertips();
+}
   const [localDraft, setLocalDraft] = useState(composer.inputDraft);
   const localDraftRef = useRef(composer.inputDraft);
   const draftConversationIdRef = useRef(activeConversationId);
