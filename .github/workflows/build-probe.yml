@@ -1,0 +1,122 @@
+name: Build Probe APK
+on: workflow_dispatch
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Write probe runner
+        run: |
+          mkdir -p public/runners
+          cat > public/runners/wake-probe.js <<'RUNNER_EOF'
+          addEventListener('wakeProbe', (resolve, reject, args) => {
+            try {
+              const now = Date.now();
+              let log = [];
+              try {
+                const raw = CapacitorKV.get('wake_probe_log').value;
+                if (raw) log = JSON.parse(raw);
+              } catch (e) { log = []; }
+              log.push(now);
+              if (log.length > 500) log = log.slice(-500);
+              CapacitorKV.set('wake_probe_log', JSON.stringify(log));
+              CapacitorKV.set('wake_probe_last', String(now));
+              console.log('[wake-probe] tick #' + log.length + ' at ' + new Date(now).toISOString());
+              resolve();
+            } catch (err) { reject(err); }
+          });
+          RUNNER_EOF
+          echo '--- runner written ---'
+          cat public/runners/wake-probe.js
+
+      - name: Write capacitor config
+        run: |
+          cat > capacitor.config.ts <<'CONFIG_EOF'
+          import type { CapacitorConfig } from '@capacitor/cli';
+          import { KeyboardResize } from '@capacitor/keyboard';
+
+          const config: CapacitorConfig = {
+            appId: 'com.alyssa.polaris',
+            appName: 'Polaris',
+            webDir: 'dist',
+            server: {
+              iosScheme: 'http',
+              hostname: 'localhost'
+            },
+            plugins: {
+              CapacitorHttp: {
+                enabled: false
+              },
+              Keyboard: {
+                resize: KeyboardResize.None
+              },
+              LocalNotifications: {
+                presentationOptions: ['badge', 'sound', 'banner', 'list']
+              },
+              BackgroundRunner: {
+                label: 'com.polaris.wakeprobe',
+                src: 'runners/wake-probe.js',
+                event: 'wakeProbe',
+                repeat: true,
+                interval: 15,
+                autoStart: true
+              }
+            }
+          };
+
+          export default config;
+          CONFIG_EOF
+          echo '--- config written ---'
+          cat capacitor.config.ts
+
+      - name: Patch gradle
+        run: |
+          cat > /tmp/patch.js <<'JS_EOF'
+          const fs = require('fs');
+          const p = 'android/app/build.gradle';
+          let s = fs.readFileSync(p, 'utf8');
+          if (s.includes('background-runner')) {
+            console.log('already patched');
+            process.exit(0);
+          }
+          const before = s;
+          s = s.replace("'libs'", "'libs', '../../node_modules/@capacitor/background-runner/android/src/main/libs'");
+          if (s === before) {
+            console.error('PATCH FAILED - anchor not found');
+            process.exit(1);
+          }
+          fs.writeFileSync(p, s);
+          console.log('gradle patched');
+          JS_EOF
+          node /tmp/patch.js
+
+      - run: npm install
+
+      - run: npm install @capacitor/background-runner
+
+      - run: npm run build
+
+      - run: npx cap sync android
+
+      - run: cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon
+
+      - name: Verify runner inside APK
+        run: |
+          unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -i wake-probe || echo 'NOT-FOUND'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: polaris-probe-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
