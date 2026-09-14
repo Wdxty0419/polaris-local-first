@@ -15,6 +15,16 @@ import { MessageMarkdown } from './MessageMarkdown';
 import { MessageThinkingProjection } from './MessageThinkingProjection';
 import { isCodeWriteToolName, isProjectedCodeToolName } from './projectedCodeTools';
 
+const FINGERTIPS_MARKER = '[Fingertips 指尖语气]';
+
+function splitFingertips(content: string): { main: string; fingertips: string | null } {
+ const index = content.indexOf(FINGERTIPS_MARKER);
+ if (index === -1) return { main: content, fingertips: null };
+ return {
+ main: content.slice(0, index).trimEnd(),
+ fingertips: content.slice(index + FINGERTIPS_MARKER.length).trim()
+ };
+}
 type MessageContentProps = {
   message: ChatMessage;
   codeCardActionMode: CodeCardActionMode;
@@ -391,8 +401,26 @@ export function MessageContent({
   }, [hasThinkingProjection, isAssistantMessage, visibleThinkingText, message.id]);
 
   if (!isAssistantMessage) {
-    return renderRichText(displayedMessageContent);
-  }
+ const { main, fingertips } = splitFingertips(displayedMessageContent);
+
+ if (fingertips) {
+ return (
+ <>
+ {main ? renderRichText(main) : null}
+ <details className="message-fingertips">
+ <summary>指尖语气</summary>
+ <div className="message-fingertips-body">
+ {fingertips.split('\n').filter(Boolean).map((line, index) => (
+ <p key={index}>{line}</p >
+ ))}
+ </div>
+ </details>
+ </>
+ );
+ }
+
+ return renderRichText(displayedMessageContent);
+}
 
   if (shouldPreferInlineCode) {
     const inlineContent = shouldCollapseProjectedCode
