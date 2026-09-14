@@ -115,3 +115,32 @@
   transform: translateZ(0);
 }
 .msg-row[data-row-state='entering'] .bubble { transform: none; }
+/* Fingertips 指尖语气 */
+.message-fingertips {
+ margin-top: 8px;
+ padding: 0;
+ border: 0;
+ font-size: 0.8em;
+ line-height: 1.5;
+ color: color-mix(in srgb, var(--text-soft) 72%, transparent);
+}
+.message-fingertips summary {
+ cursor: pointer;
+ list-style: none;
+ opacity: 0.6;
+ transition: opacity 160ms ease;
+ letter-spacing: 0.02em;
+}
+.message-fingertips summary::-webkit-details-marker { display: none; }
+.message-fingertips summary::before {
+ content: '✧ ';
+ opacity: 0.5;
+}
+.message-fingertips[open] summary {
+ opacity: 0.8;
+ margin-bottom: 4px;
+}
+.message-fingertips-body p {
+ margin: 2px 0;
+ opacity: 0.75;
+}
