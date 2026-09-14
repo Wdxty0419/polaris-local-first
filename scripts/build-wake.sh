@@ -123,7 +123,7 @@ const NEW_RULE_CHECK = `    // Wake Veil: check delivered notifications
           if (!persona) return;
           const chatState = store.chat.readLatestState();
           const liveConvs = selectChatConversations(chatState.conversations);
-          let conv = liveConvs.filter((cv: any) => cv.collaboratorId === persona.id).sort((a: any, b: any) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0] ?? null;
+          let conv: any = liveConvs.filter((cv: any) => cv.collaboratorId === persona.id).sort((a: any, b: any) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0] ?? null;
           if (!conv) { const newId = store.chat.createConversation(persona.id); conv = selectChatConversations(store.chat.readLatestState().conversations).find((cv: any) => cv.id === newId) ?? null; }
           if (!conv) return;
           if (generationByConversationIdRef.current[conv.id]?.sending) return;
