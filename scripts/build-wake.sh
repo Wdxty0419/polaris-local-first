@@ -103,7 +103,7 @@ const NEW_RULE_CHECK = `    // Wake Veil: check delivered notifications
           const delivered = await LocalNotifications.getDeliveredNotifications();
           const wv = delivered.notifications.find((n: any) => n.extra?.polarisKind === 'wake-veil-opportunity');
           if (wv) {
-            await LocalNotifications.removeDeliveredNotifications({ notifications: [{ id: wv.id }] });
+            await LocalNotifications.removeDeliveredNotifications({ notifications: [wv] });
             wakeVeilPendingRef.current = true;
             setWakeTick((prev: number) => prev + 1);
           }
@@ -124,7 +124,8 @@ const NEW_RULE_CHECK = `    // Wake Veil: check delivered notifications
           const chatState = store.chat.readLatestState();
           const liveConvs = selectChatConversations(chatState.conversations);
           let conv = liveConvs.filter((cv: any) => cv.collaboratorId === persona.id).sort((a: any, b: any) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0] ?? null;
-          if (!conv) conv = store.chat.createConversation(persona.id);
+          if (!conv) { const newId = store.chat.createConversation(persona.id); conv = selectChatConversations(store.chat.readLatestState().conversations).find((cv: any) => cv.id === newId) ?? null; }
+          if (!conv) return;
           if (generationByConversationIdRef.current[conv.id]?.sending) return;
           const writable = await store.chat.ensureConversationWritable(conv.id);
           if (!writable) return;
