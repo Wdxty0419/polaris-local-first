@@ -79,8 +79,10 @@ const TAP_EFFECT = `
     let handle: any = null;
     void LocalNotifications.addListener('localNotificationActionPerformed', (action: any) => {
       const extra = action.notification?.extra;
-      if (extra && extra.polarisKind === 'wake-veil-opportunity') {
+      const nid = action.notification?.id;
+      if ((nid === 9002) || (extra && extra.polarisKind === 'wake-veil-opportunity')) {
         wakeVeilPendingRef.current = true;
+        setCommandStatus('Wake Veil 通知被点击');
         setWakeTick((prev: number) => prev + 1);
       }
     }).then((h: any) => { if (cancelled) { void h.remove(); } else { handle = h; } });
@@ -101,10 +103,11 @@ const NEW_RULE_CHECK = `    // Wake Veil: check delivered notifications
       void (async () => {
         try {
           const delivered = await LocalNotifications.getDeliveredNotifications();
-          const wv = delivered.notifications.find((n: any) => n.extra?.polarisKind === 'wake-veil-opportunity');
+          const wv = delivered.notifications.find((n: any) => n.id === 9002 || (n.extra && n.extra.polarisKind === 'wake-veil-opportunity') || n.title === '小满想找你');
           if (wv) {
             await LocalNotifications.removeDeliveredNotifications({ notifications: [wv] });
             wakeVeilPendingRef.current = true;
+            setCommandStatus('检测到 Wake Veil 待唤醒通知');
             setWakeTick((prev: number) => prev + 1);
           }
         } catch {}
@@ -129,7 +132,13 @@ const NEW_RULE_CHECK = `    // Wake Veil: check delivered notifications
           if (generationByConversationIdRef.current[conv.id]?.sending) return;
           const writable = await store.chat.ensureConversationWritable(conv.id);
           if (!writable) return;
-          const nextMessages = [...writable.messages];
+          let nextMessages = [...writable.messages];
+          try {
+            const syntheticRule: any = { id: '__wake-veil__', name: 'Wake Veil', enabled: true, target: { collaboratorId: persona.id, conversation: 'follow-latest' }, schedule: { kind: 'interval', everyMinutes: 15 }, nextRunAt: Date.now(), lastRunAt: null, createdAt: Date.now(), updatedAt: Date.now() };
+            const tm = createTriggerMessage(syntheticRule, null);
+            store.chat.addMessage(writable, tm);
+            nextMessages = [...nextMessages, tm];
+          } catch (e) {}
           const msgCount = nextMessages.length;
           setCommandStatus('Wake Veil 自然醒来');
           const result = await runReply({ conversationId: writable.conversationId, collaboratorId: persona.id, messages: nextMessages });
