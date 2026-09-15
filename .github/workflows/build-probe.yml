@@ -15,8 +15,6 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - uses: android-actions/setup-android@v3
-
       - run: bash scripts/build-wake.sh
 
       - uses: actions/upload-artifact@v4
